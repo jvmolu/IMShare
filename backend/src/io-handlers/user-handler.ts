@@ -6,7 +6,7 @@ export const registerUserEvents = (io: Server, socket: Socket) => {
 
     socket.on(ClientToServerEventsEnum.get_id, (callback) => {
         console.log('get_id event received');
-        callback(socket.id);
+        callback({"id": socket.id});
     });
 
     socket.on(ClientToServerEventsEnum.ping, () => {

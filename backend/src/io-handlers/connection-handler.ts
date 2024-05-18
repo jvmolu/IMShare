@@ -10,6 +10,10 @@ export const connectionHandler = (io: Server) => {
     }
     io.on('connection', (socket: Socket) => {
         registerUserEvents(io, socket);
+        // Disconnect Event
+        socket.on('disconnect', () => {
+            console.log('User Disconnected with ID: ', socket.id);
+        });
         console.log('User Connected with ID: ', socket.id);
     });
 }

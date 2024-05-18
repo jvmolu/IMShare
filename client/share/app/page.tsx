@@ -11,14 +11,19 @@ export default function Home() {
 	const [inputMessage, setInputMessage] = useState("");
 
 	useEffect(() => {
+
 		if (socket && socket.connected) {
 			onConnect();
+		}
+
+		function handlePong(msg: any) {
+			console.log("pong");
+			setMessage(msg); // set the message state variable
 		}
 
 		function onConnect() {
 			setIsConnected(true);
 			setTransport(socket.io.engine.transport.name);
-
 			socket.io.engine.on("upgrade", (transport) => {
 				setTransport(transport.name);
 			});
@@ -31,19 +36,19 @@ export default function Home() {
 
 		socket.on("connect", onConnect);
 		socket.on("disconnect", onDisconnect);
+		socket.on("pong", handlePong);
 
 		return () => {
 			socket.off("connect", onConnect);
 			socket.off("disconnect", onDisconnect);
+			socket.off("pong", handlePong);
 		};
+
 	}, [socket]);
 
 	const handleConnect = () => {
 		if (socket) {
 			socket.connect();
-			socket.on("connect", () => {
-				console.log("Socket ID:", socket.id);
-			});
 			socket.emit("get_id", (response: any) => {
 				console.log(response.id);
 				setid(response.id);
@@ -53,25 +58,10 @@ export default function Home() {
 
 	const messages = () => {
 		socket.emit("ping");
-
-		useEffect(() => {
-			if (socket) {
-				socket.on("pong", (msg) => {
-					console.log("pong");
-					setMessage(msg); // set the message state variable
-				});
-			}
-
-			if (socket) {
-				socket.emit("message", inputMessage);
-				setInputMessage(""); // clear the input field
-			}
-			return () => {
-				if (socket) {
-					socket.off("message");
-				}
-			};
-		}, [socket]);
+		if (socket) {
+			socket.emit("message", inputMessage);
+			setInputMessage(""); // clear the input field
+		}
 	};
 
 	return (
