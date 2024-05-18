@@ -30,7 +30,7 @@ const io = new Server<
   }
 });
 
-io.on('connection', connectionHandler);
+connectionHandler(io);
 
 httpServer.listen(4000, () => {
   console.log('listening on *:4000');

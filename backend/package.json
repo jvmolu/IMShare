@@ -19,5 +19,8 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8",
     "utf-8-validate": "^5.0.10"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.8"
   }
 }

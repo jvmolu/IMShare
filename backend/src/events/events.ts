@@ -1,15 +1,18 @@
+import { ServerToClientEventsEnum, ClientToServerEventsEnum, InterServerEventsEnum } from "./event-types";
+
 interface ServerToClientEvents {
-    noArg: () => void;
-    basicEmit: (a: number, b: string, c: Buffer) => void;
-    sendFilePacketWithCallback: (filename: string, buffer: Buffer, packetId: number, ack: (success: boolean) => void) => void;
+    [ServerToClientEventsEnum.pong]: () => void;
+    [ServerToClientEventsEnum.filePacketWithCallback]: (data: string, callback: (response: string) => void) => void;
 }
   
 interface ClientToServerEvents {
-    hello: () => void;
+    [ClientToServerEventsEnum.get_id]: (callback: (id: string) => void) => void;
+    [ClientToServerEventsEnum.ping]: () => void;
 }
 
 interface InterServerEvents {
-    ping: () => void;
+    [InterServerEventsEnum.ping]: () => void;
+    [InterServerEventsEnum.pong]: () => void;
 }
 
 interface SocketData {
