@@ -19,8 +19,7 @@ const io = new Server<
     SocketData
 >(httpServer, {
   cors: {
-    origin: CORS_ORIGINS.split(','),
-    methods: ['GET', 'POST'],
+    origin: CORS_ORIGINS.split(',')
   },
   connectionStateRecovery: {
     // the backup duration of the sessions and the packets
