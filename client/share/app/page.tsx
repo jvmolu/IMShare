@@ -123,6 +123,9 @@ export default function Home() {
 				onChange={(e) => {
 					setInputMessage(e.target.value);
 				}}
+				style={{
+					color: "black",
+				}}
 			/>
 			<br />
 			<button
