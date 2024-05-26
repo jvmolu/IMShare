@@ -1,90 +1,23 @@
-// Download Worker - Recieves a chunk of file and saves it in the file at the correct position in the file using file system access api
-// function saveChunk(chunk, file_name, indexOfChunk) {
-//     // Save the chunk in the file
-//     console.log("Saving chunk in the file");
-
-//     let downloadDirectory = "C:/Users/anmol/Desktop/Coding/DogeShare/recievedData";
-//     let file_path = downloadDirectory + "/" + file_name;
-
-//     if (!fs.existsSync(downloadDirectory)) {
-//         fs.mkdirSync(downloadDirectory);
-//     }
-
-//     // If the file does not exist, create it
-//     if (!fs.existsSync(file_path)) {
-//         fs.writeFileSync(file_path, '');
-//     }
-
-//     // Open the file in read-write mode
-//     let fd = fs.openSync(file_path, 'r+');
-
-//     // Convert the chunk back to a Buffer
-//     let buffer = Buffer.from(chunk, 'binary');
-
-//     // Calculate the position at which to write the chunk
-//     let chunk_size = 900; // This should be the same as the chunk size in the read_file function
-//     let position = indexOfChunk * chunk_size;
-
-//     // while file size <= position keep writing
-//     let stats = fs.statSync(file_path);
-//     let fileSize = stats.size;
-//     let extraSize = position - fileSize;
-//     if (extraSize > 0) {
-//         console.log("Extra size: ", extraSize);
-//         let extraBuffer = Buffer.alloc(extraSize);
-//         // Append Extra Buffer to the file
-//         fs.writeSync(fd, extraBuffer, 0, extraBuffer.length, fileSize);
-//     }
-
-//     // Write the chunk at the correct position in the file
-//     fs.writeSync(fd, buffer, 0, buffer.length, position);
-
-//     fs.closeSync(fd);
-
-//     // Truncate the file to remove any extra bytes at the end
-//     truncateFile(file_path);
-
-//     console.log("Chunk saved successfully");
-//     console.log("Chunk index: ", indexOfChunk);
-// }
-
-// function truncateFile(file_path) {
-//     // Open the file in read-write mode
-//     let fd = fs.openSync(file_path, 'r+');
-
-//     // Get the current file size
-//     let stats = fs.fstatSync(fd);
-//     let size = stats.size;
-
-//     // Create a buffer to read one byte at a time
-//     let buffer = Buffer.alloc(1);
-
-//     // Read the file backwards from the end
-//     for (let i = size - 1; i >= 0; i--) {
-//         fs.readSync(fd, buffer, 0, 1, i);
-//         if (buffer[0] !== 0) {
-//             // This is the position of the last non-null byte
-//             fs.ftruncateSync(fd, i + 1);
-//             break;
-//         }
-//     }
-
-//     // Close the file
-//     fs.closeSync(fd);
-// }
-
-// e.data contains the data sent from the main thread
-// In this case, it is an object with the following properties:
-// - chunk: the chunk of file data - buffer
-// - startPostion: the start position of the chunk in the file
-// - fileHandle: the file handle of the file to write to
-
-// TODO. DO I USE A WRITABLE STREAM OR A SYNC ACCESS HANDLE [USES OPFS]
-
+/**
+ * @description This worker thread saves a chunk of data to a file at the specified start position.
+**/
 export default () => {
+
+    importScripts('../services/fileHandleService.js');
 
     let fileHandle = null;
     
+    /**
+     * @param {MessageEvent} event - The event object
+     * @param {Object} event.data - The data sent from the main thread
+     * @param {String} event.data.type - The type of the event
+     * @param {ArrayBuffer} event.data.chunk - The chunk of file data
+     * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
+     * @param {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to write to
+     * @returns {void}
+     * @description This function saves the chunk of data to the file at the specified start position.
+     * The file handle is used to write the data to the file using a writable stream.
+    */
     self.addEventListener('message', async (event) => {
 
       // If the event data is a file handle, store it in the fileHandle variable
@@ -103,70 +36,59 @@ export default () => {
       // If file handle is not set and the event type is not fileHandle return an error saying please transfer file handle first
       if(fileHandle === null) {
         console.log("FILE_HANDLE NOT DEFINED IN SAVE CHUNK WORKER");
-        self.postMessage("FILE_HANDLE_NULL");
+        self.postMessage({message: "FILE_HANDLE_NULL"});
+        return;
       }
 
       // Recieve the data from the main thread
-      let data = e.data;
+      let data = event.data;
 
       // Check if permission is granted to read and write to the file
-      let permission = await verifyPermission(fileHandle, true);
+      let permission = verifyPermission(fileHandle, true);
       if (!permission) {
           console.log("PERMISSION_DENIED");
           // Return false to the main thread
-          self.postMessage("PERMISSION_DENIED");
+          self.postMessage({message: "PERMISSION_DENIED"})
           return;
       }
 
-      let readableStream = fileHandle.createReadable();
-      let writableStream = fileHandle.createWritable();
+      let stats = await fileHandle.getFile();
+      let writableStream = fileHandle.createWritable();;
+      let lockKey = 'lock-' + stats.name;
 
-      // TODO. Aquire Lock - Critical Section
-      await navigator.locks.request('save-chunk-lock', async lock => {
+      // Aquire Lock - Critical Section -------------------------------------
+      await navigator.locks.request(lockKey, async lock => {
 
-        // TODO. If start position filled -> Ignore this request [Already Recieved this chunk via some other peer]
-        
+        // TODO. CHECK IF IT IS ACTUALLY NEEDED OR IT CAN CAUSE ISSUES
+        // IF I AM GETTING : (2,9)
+        // AND (2,3) is filled, then I will ignore the request because I already have the data
+        // Ignore this request [Already Recieved this chunk via some other peer]
+        let contentAtPosition = await stats.slice(data.startPosition, data.startPosition + 1).arrayBuffer();
+        if(contentAtPosition.byteLength !== 0) { // If the byte at the start position is not empty
+          // TODO. Is this message needed?
+          // Seems like yes in above mentioned case we will simply say 2 position is filled so dont request it again
+          postMessage({message: "CHUNK_ALREADY_FILLED", position: data.startPosition});
+          return;
+        }
 
-        // Check if file needs to be allocated more space
-        let stats = await fileHandle.getFile();
-
-        // Get the file size
-        let fileSize = stats.size;
-
-        // TODO. Allocate Extra Size if needed
-
-        // TODO. Write the chunk to file
+        // Allocate Extra Space if needed
+        let extraSpace = data.startPosition - stats.size;
+        if(extraSpace > 0) {
+          // Allocate extra space
+          console.log("Allocating extra space: ", extraSpace);
+          await writableStream.truncate(stats.size + extraSpace);
+        }
+                
+        // Write the chunk to file
+        writableStream.write({type: 'write', position: data.startPosition, data: data.chunk})
 
         // Save changes to Disk
-        syncAccessHandle.flush();
+        await writableStream.close();
 
-        // Lock is released after the critical section
+        // Lock is released after the critical section -----------------------  
       });
       
-
-      // Aquire write lock for meta data file
-      await navigator.locks.request('metadata-lock', async lock => {
-  
-        // TODO. Write in the metadata file that this space is filled
-  
-      });
-
+      // Notify the main thread that the chunk has been saved
+      self.postMessage({message: "CHUNK_SAVED", startPosition: data.startPosition, endPosition: data.startPosition + data.chunk.byteLength});
     });
-
-    async function verifyPermission(fileHandle, readWrite) {
-        const options = {};
-        if (readWrite) {
-          options.mode = 'readwrite';
-        }
-        // Check if permission was already granted. If so, return true.
-        if ((await fileHandle.queryPermission(options)) === 'granted') {
-          return true;
-        }
-        // Request permission. If the user grants permission, return true.
-        if ((await fileHandle.requestPermission(options)) === 'granted') {
-          return true;
-        }
-        // The user didn't grant permission, so return false.
-        return false;
-    }
 };
