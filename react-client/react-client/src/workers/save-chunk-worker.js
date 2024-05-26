@@ -1,5 +1,15 @@
 /**
- * @description This worker thread saves a chunk of data to a file at the specified start position.
+ * @property {MessageEvent} event - The event object
+ * @property {Object} event.data - The data sent from the main thread
+ * @param {String} event.data.type - The type of the event
+ * @param {ArrayBuffer} event.data.chunk - The chunk of file data
+ * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
+ * @param {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to write to
+ * @emits {message: "FILE_HANDLE_NULL"};
+ * @emits {message: "PERMISSION_DENIED"};
+ * @emits {message: "CHUNK_ALREADY_FILLED", position: data.startPosition};
+ * @emits {message: "CHUNK_SAVED", startPosition: data.startPosition, endPosition: data.startPosition + data.chunk.byteLength};
+ * @description This worker thread saves a chunk of data to a file at the specified start position. The file handle is used to write the data to the file using a writable stream.
 **/
 export default () => {
 
@@ -7,17 +17,6 @@ export default () => {
 
     let fileHandle = null;
     
-    /**
-     * @param {MessageEvent} event - The event object
-     * @param {Object} event.data - The data sent from the main thread
-     * @param {String} event.data.type - The type of the event
-     * @param {ArrayBuffer} event.data.chunk - The chunk of file data
-     * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
-     * @param {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to write to
-     * @returns {void}
-     * @description This function saves the chunk of data to the file at the specified start position.
-     * The file handle is used to write the data to the file using a writable stream.
-    */
     self.addEventListener('message', async (event) => {
 
       // If the event data is a file handle, store it in the fileHandle variable
@@ -53,7 +52,7 @@ export default () => {
       }
 
       let stats = await fileHandle.getFile();
-      let writableStream = fileHandle.createWritable();;
+      let writableStream = fileHandle.createWritable();
       let lockKey = 'lock-' + stats.name;
 
       // Aquire Lock - Critical Section -------------------------------------

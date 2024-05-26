@@ -1,7 +1,7 @@
 /**
     * @param {FileSystemFileHandle} fileHandle - The file handle of the file to write to
     * @param {Boolean} readWrite - The read/write permission to check for
-    * @returns {Boolean} - The permission status
+    * @returns {Boolean} The permission status
     * @description This function checks if the permission to read and write to the file is granted.
     * If the permission is granted, the function returns true. If the permission is not granted, the function requests the permission.
     * If the user grants the permission, the function returns true. If the user denies the permission, the function returns false.
@@ -28,7 +28,7 @@ async function verifyPermission(fileHandle, readWrite) {
  * @param {FileSystemFileHandle} fileHandle - The file handle of the file to read from
  * @param {Number} startPosition - The start position [byte index] of the chunk in the file
  * @param {Number} endPosition - The end position [byte index] of the chunk in the file
- * @returns {Array} - The chunks of data read from the file
+ * @returns {Array} The chunks of data read from the file
  * @description This function reads the chunk of data from the file at the specified start and end position.
 **/
 async function* getChunkGenerator(fileHandle, startPosition, endPosition, uploadChunkSizeInBytes) {
@@ -67,7 +67,7 @@ async function* getChunkGenerator(fileHandle, startPosition, endPosition, upload
 /**
  * @param {Blob} chunk - The chunk of data to read
  * @param {FileReader} reader - The file reader object
- * @returns {Promise} - The promise object representing the chunk data
+ * @returns {Promise} The promise object representing the chunk data
  * @description This function reads the chunk of data as an ArrayBuffer.
 **/
 async function readChunk(chunk, reader, fileName) {

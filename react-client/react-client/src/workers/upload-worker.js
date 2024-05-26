@@ -1,8 +1,17 @@
 /**
-@description This worker thread is attatched to a file and constantly listens if any chunk is requested to be uploaded from that file.
-This is used when user is uploading [Seeding] a file to the network.
+ * @param {MessageEvent} event - The event object
+ * @param {Object} event.data - The data sent from the main thread
+ * @property {String} event.data.type - The type of the event
+ * @property {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
+ * @property {Number} event.data.endPosition - The end position [byte index] of the chunk in the file
+ * @property {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to read from
+ * @property {Number} event.data.uploadChunkSizeInBytes - The size of the chunk to read from the file
+ * @emits {message: "FILE_HANDLE_NULL"};
+ * @emits {message: "UPLOAD_CHUNK_SIZE_NULL"};
+ * @emits {message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition};
+ * @emits {message: "PARTIAL_SUCCESS"};
+ * @description This worker thread is attatched to a file and constantly listens if any chunk is requested to be uploaded from that file. This is used when user is uploading [Seeding] a file to the network.
 **/
-
 export default () => {
 
     importScripts('../services/fileHandleService.js');
@@ -10,16 +19,6 @@ export default () => {
     let fileHandle = null;
     let uploadChunkSizeInBytes = null;
 
-    /**
-     * @param {MessageEvent} event - The event object
-     * @param {Object} event.data - The data sent from the main thread
-     * @param {String} event.data.type - The type of the event
-     * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
-     * @param {Number} event.data.endPosition - The end position [byte index] of the chunk in the file
-     * @param {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to read from
-     * @returns {void}
-     * @description This function reads the chunk of data from the file at the specified start and end position and sends it to the main thread.
-    **/
     self.addEventListener('message', async (event) => {
 
         // If the event data is a file handle, store it in the fileHandle variable
@@ -69,7 +68,7 @@ export default () => {
                 if (chunk.done) {
                     break;
                 }
-                self.postMessage({chunk: chunk.value, startPosition: data.startPosition});
+                self.postMessage({message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition});
             }
         }
         catch (error) {
