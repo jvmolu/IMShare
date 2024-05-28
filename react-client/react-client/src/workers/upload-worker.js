@@ -1,11 +1,11 @@
 /**
  * @param {MessageEvent} event - The event object
  * @param {Object} event.data - The data sent from the main thread
- * @property {String} event.data.type - The type of the event
- * @property {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
- * @property {Number} event.data.endPosition - The end position [byte index] of the chunk in the file
- * @property {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to read from
- * @property {Number} event.data.uploadChunkSizeInBytes - The size of the chunk to read from the file
+ * @param {String} event.data.type - The type of the event
+ * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
+ * @param {Number} event.data.endPosition - The end position [byte index] of the chunk in the file
+ * @param {FileSystemFileHandle} event.data.fileHandle - The file handle of the file to read from
+ * @param {Number} event.data.uploadChunkSizeInBytes - The size of the chunk to read from the file
  * @emits {message: "FILE_HANDLE_NULL"};
  * @emits {message: "UPLOAD_CHUNK_SIZE_NULL"};
  * @emits {message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition};
@@ -64,11 +64,11 @@ export default () => {
             while (true) {
                 // after getting the next chunk, update the chunkSize if the main thread has sent a new chunk size
                 // This will take effect from the next chunk onwards [not the current one being read]
-                let chunk = chunksGenerator.next(uploadChunkSizeInBytes);
+                let chunk = await chunksGenerator.next(uploadChunkSizeInBytes);
                 if (chunk.done) {
                     break;
                 }
-                self.postMessage({message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition});
+                self.postMessage({message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition}, [chunk.value]);
             }
         }
         catch (error) {

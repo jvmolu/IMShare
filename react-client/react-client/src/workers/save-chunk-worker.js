@@ -1,6 +1,6 @@
 /**
- * @property {MessageEvent} event - The event object
- * @property {Object} event.data - The data sent from the main thread
+ * @param {MessageEvent} event - The event object
+ * @param {Object} event.data - The data sent from the main thread
  * @param {String} event.data.type - The type of the event
  * @param {ArrayBuffer} event.data.chunk - The chunk of file data
  * @param {Number} event.data.startPosition - The start position [byte index] of the chunk in the file
@@ -52,7 +52,7 @@ export default () => {
       }
 
       let stats = await fileHandle.getFile();
-      let writableStream = fileHandle.createWritable();
+      let writableStream = await fileHandle.createWritable();
       let lockKey = 'lock-' + stats.name;
 
       // Aquire Lock - Critical Section -------------------------------------
