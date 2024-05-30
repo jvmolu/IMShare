@@ -130,9 +130,6 @@ let mySaveChunkWorker = () => {
         return;
       }
 
-      // Recieve the data from the main thread
-      let data = event.data;
-
       // Check if permission is granted to read and write to the file
       let permission = verifyPermission(fileHandle, true);
       if (!permission) {
@@ -148,8 +145,11 @@ let mySaveChunkWorker = () => {
       // Aquire Lock - Critical Section -------------------------------------
       await navigator.locks.request(lockKey, async lock => {
 
+        // Recieve the data from the main thread
+        let data = event.data;
+
         stats = await fileHandle.getFile(); // Get the latest stats
-        let writableStream = await fileHandle.createWritable();
+        let writableStream = await fileHandle.createWritable({keepExistingData: true});
 
         // TODO. CHECK IF IT IS ACTUALLY NEEDED OR IT CAN CAUSE ISSUES
         // IF I AM GETTING : (2,9)
@@ -172,7 +172,9 @@ let mySaveChunkWorker = () => {
           console.log("Allocating extra space: ", extraSpace);
           await writableStream.truncate(stats.size + extraSpace);
         }
-                
+
+        console.log("WRITING CHUNK TO FILE: ", data.startPosition, " - ", data.startPosition + data.chunk.byteLength);
+        
         // Write the chunk to file
         writableStream.write({type: 'write', position: data.startPosition, data: data.chunk})
 
@@ -182,10 +184,10 @@ let mySaveChunkWorker = () => {
         stats = await fileHandle.getFile();
         console.log("FILE SIZE AFTER TRUNCATE: ", stats.size);
 
+        // Notify the main thread that the chunk has been saved
+        self.postMessage({message: "CHUNK_SAVED", startPosition: data.startPosition, endPosition: data.startPosition + data.chunk.byteLength});
+
         // Lock is released after the critical section -----------------------  
       });
-      
-      // Notify the main thread that the chunk has been saved
-      self.postMessage({message: "CHUNK_SAVED", startPosition: data.startPosition, endPosition: data.startPosition + data.chunk.byteLength});
     });
 };

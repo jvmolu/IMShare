@@ -54,9 +54,6 @@ const processFile = async () => {
 
 const startDownload = async () => {
 
-    // Request uploadWorker for chunks of data in linear order in chunks of 1024 bytes
-    uploadWorker.postMessage({ type: 'setChunkSize', uploadChunkSizeInBytes: 1024 });
-
     let downloadDirectoryHandle = null;
 
     // Select the directory for file download
@@ -93,16 +90,24 @@ const startDownload = async () => {
         }
     }
 
-    setInterval(() => {
-        checkQueueAndSaveChunks();
-    }, 10);
-
     // Start Requesting Chunks from the Server
     for (let i = 0; i < fileBeingUploaded.size; i += 1024) {
         console.log("Requesting Chunk from position: ", i);
         countOfChunks++;
         uploadWorker.postMessage({ type: 'requestChunk', startPosition: i, endPosition: i + 1024 });
+        // Sleep for 5 seconds
+        // await new Promise(r => setTimeout(r, 5000));
     }
+
+    function processQueue() {
+        checkQueueAndSaveChunks().then(() => {
+            // Set the next timeout when checkQueueAndSaveChunks has finished
+            setTimeout(processQueue, 10);
+        });
+    }
+    
+    // Start the first timeout
+    processQueue();
 
     // Upload Completed
     console.log("Upload Completed");
@@ -116,7 +121,6 @@ const checkQueueAndSaveChunks = async () => {
     }
 
     console.log("Saving Chunk to File")
-    countOfChunks--;
 
     // Save the chunks to the file
     let data = chunkQueue.shift();
@@ -124,9 +128,4 @@ const checkQueueAndSaveChunks = async () => {
     let chunk = data.chunk;
 
     saveChunkWorker.postMessage({ type: 'saveChunk', startPosition: startPosition, chunk: chunk }, [chunk]);
-
-    // If all chunks are saved, close the worker
-    if (countOfChunks === 0) {
-        console.log("All Chunks Saved");
-    }
 }

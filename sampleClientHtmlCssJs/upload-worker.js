@@ -147,27 +147,31 @@ let myUploadChunkWorker = () => {
             self.postMessage({message: "UPLOAD_CHUNK_SIZE_NULL"});
             return;
         }
-    
-        // Recieve the data from the main thread
-        let data = event.data;
-    
-        try {
-            // Read the chunks of data from the file in the range specified
-            let chunksGenerator = getChunkGenerator(fileHandle, data.startPosition, data.endPosition, uploadChunkSizeInBytes);
-            // Send the chunks of data to the main thread one by one
-            while (true) {
-                // after getting the next chunk, update the chunkSize if the main thread has sent a new chunk size
-                // This will take effect from the next chunk onwards [not the current one being read]
-                let chunk = await chunksGenerator.next(uploadChunkSizeInBytes);
-                if (chunk.done) {
-                    break;
+
+        // lock
+        let lockKey = 'upload-lock-' + fileHandle.name;
+        navigator.locks.request(lockKey, async lock => {
+            // Recieve the data from the main thread
+            let data = event.data;
+        
+            try {
+                // Read the chunks of data from the file in the range specified
+                let chunksGenerator = getChunkGenerator(fileHandle, data.startPosition, data.endPosition, uploadChunkSizeInBytes);
+                // Send the chunks of data to the main thread one by one
+                while (true) {
+                    // after getting the next chunk, update the chunkSize if the main thread has sent a new chunk size
+                    // This will take effect from the next chunk onwards [not the current one being read]
+                    let chunk = await chunksGenerator.next(uploadChunkSizeInBytes);
+                    if (chunk.done) {
+                        break;
+                    }
+                    self.postMessage({message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition}, [chunk.value]);
                 }
-                self.postMessage({message: "CHUNK", chunk: chunk.value, startPosition: data.startPosition}, [chunk.value]);
             }
-        }
-        catch (error) {
-            console.error(`Error reading chunk at offset ${data.startPosition}: ${error}`);
-            self.postMessage({message: "PARTIAL_SUCCESS"});
-        }
+            catch (error) {
+                console.error(`Error reading chunk at offset ${data.startPosition}: ${error}`);
+                self.postMessage({message: "PARTIAL_SUCCESS"});
+            }
+        });
     });
 }
