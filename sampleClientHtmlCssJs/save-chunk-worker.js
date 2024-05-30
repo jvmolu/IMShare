@@ -151,17 +151,19 @@ let mySaveChunkWorker = () => {
         stats = await fileHandle.getFile(); // Get the latest stats
         let writableStream = await fileHandle.createWritable({keepExistingData: true});
 
+        // TODO. FIX THIS CHECK
         // TODO. CHECK IF IT IS ACTUALLY NEEDED OR IT CAN CAUSE ISSUES
         // IF I AM GETTING : (2,9)
         // AND (2,3) is filled, then I will ignore the request because I already have the data
         // Ignore this request [Already Recieved this chunk via some other peer]
-        let contentAtPosition = await stats.slice(data.startPosition, data.startPosition + 1).arrayBuffer();
-        if(contentAtPosition.byteLength !== 0) { // If the byte at the start position is not empty
-          // TODO. Is this message needed?
-          // Seems like yes in above mentioned case we will simply say 2 position is filled so dont request it again
-          postMessage({message: "CHUNK_ALREADY_FILLED", position: data.startPosition});
-          return;
-        }
+        // let contentAtPosition = await stats.slice(data.startPosition, data.startPosition + 1).arrayBuffer();
+        // if(contentAtPosition.byteLength !== 0) { // If the byte at the start position is not empty
+        //   // TODO. Is this message needed?
+        //   // Seems like yes in above mentioned case we will simply say 2 position is filled so dont request it again
+        //   self.postMessage({message: "CHUNK_ALREADY_FILLED", position: data.startPosition});
+        //   await writableStream.close();
+        //   return;
+        // }
 
         console.log("FILE SIZE BEFORE TRUNCATE: ", stats.size);
 
