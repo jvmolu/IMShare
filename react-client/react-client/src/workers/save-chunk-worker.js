@@ -87,7 +87,7 @@ export default () => {
         console.log("WRITING CHUNK TO FILE: ", data.startPosition, " - ", data.startPosition + data.chunk.byteLength);
         
         // Write the chunk to file
-        writableStream.write({type: 'write', position: data.startPosition, data: data.chunk})
+        await writableStream.write({type: 'write', position: data.startPosition, data: data.chunk});
 
         // Save changes to Disk
         await writableStream.close();
