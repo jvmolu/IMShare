@@ -9,7 +9,9 @@ export const connectionHandler = (io: Server) => {
         return generateUUID();
     }
     io.on('connection', (socket: Socket) => {
+        
         registerUserEvents(io, socket);
+
         // Disconnect Event
         socket.on('disconnect', () => {
             console.log('User Disconnected with ID: ', socket.id);

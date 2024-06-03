@@ -1,0 +1,48 @@
+.grid-container {
+    /* Center */
+    display: grid;
+    justify-content: center;
+    /* Split in rows */
+    grid-template-rows: 1fr 1fr;
+    /* Gap between rows */
+    grid-row-gap: 20px;
+    /* Padding */
+    padding: 10px;
+    /* Full width */
+    width: 100vw;
+    /* Row Item Width */
+    grid-template-columns: 1fr;
+    /* Center */
+    align-items: center;
+}
+
+h1 {
+    /* Center */
+    text-align: center;
+    /* Font Size */
+    font-size: 2rem;
+    /* Margin */
+    margin-top: 40px;
+    margin-bottom: 40px;
+} 
+
+ul {
+    /* Remove Bullets */
+    list-style-type: none;
+    /* Center */
+    text-align: center;
+    /* Padding */
+    padding: 0;
+    /* All List Items in a row */
+    display: flex;
+    /* Center */
+    justify-content: center;
+    /* Gap between List Items */
+    gap: 10px;
+}
+
+li {
+    /* Margin */
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
